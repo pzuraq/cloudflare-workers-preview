@@ -1,6 +1,7 @@
 # Cloudflare Workers PR Preview
 
 [![CI status][github-action-image]][github-action-url]
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fshidil%2Fcloudflare-workers-preview.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fshidil%2Fcloudflare-workers-preview?ref=badge_shield)
 
 [github-action-image]: https://github.com/shidil/cloudflare-workers-preview/workflows/build-test/badge.svg
 [github-action-url]: https://github.com/shidil/cloudflare-workers-preview/actions?query=workflow%3Abuild-test
@@ -139,3 +140,7 @@ jobs:
 ### Thanks to
 
 - [afc163/surge-preview](https://github.com/afc163/surge-preview)
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fshidil%2Fcloudflare-workers-preview.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fshidil%2Fcloudflare-workers-preview?ref=badge_large)
