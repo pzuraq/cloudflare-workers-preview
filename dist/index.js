@@ -147,7 +147,7 @@ const execNpxCommand = ({ command, options, }) => __awaiter(void 0, void 0, void
     }
 });
 exports.execNpxCommand = execNpxCommand;
-const wranglerPublish = (workingDirectory, environment, cloudflareAccount, cfApiToken) => __awaiter(void 0, void 0, void 0, function* () {
+const wranglerPublish = (workingDirectory, environment, cloudflareAccount, cfApiToken, secrets) => __awaiter(void 0, void 0, void 0, function* () {
     const wrangler = '@cloudflare/wrangler';
     // Add new environment config to wrangler config file.
     // [env.preview-job-pr-123]
@@ -165,6 +165,20 @@ const wranglerPublish = (workingDirectory, environment, cloudflareAccount, cfApi
             env: Object.assign(Object.assign({}, process.env), { CF_API_TOKEN: cfApiToken, CF_ACCOUNT_ID: cloudflareAccount }),
         },
     });
+    for (const secret of secrets) {
+        const value = process.env[secret];
+        if (!value) {
+            throw new Error(`Secret value for ${secret} not found`);
+        }
+        yield exports.execNpxCommand({
+            command: [wrangler, 'secret', 'put', `"${secret}"`, '-e', environment],
+            options: {
+                cwd: workingDirectory,
+                env: Object.assign(Object.assign({}, process.env), { CF_API_TOKEN: cfApiToken, CF_ACCOUNT_ID: cloudflareAccount }),
+                input: Buffer.from(value, 'utf-8'),
+            },
+        });
+    }
 });
 exports.wranglerPublish = wranglerPublish;
 const wranglerTeardown = (cloudflareAccount, cfApiToken, environment) => __awaiter(void 0, void 0, void 0, function* () {
@@ -234,20 +248,21 @@ function getCommitSha(payload) {
         ((_c = payload === null || payload === void 0 ? void 0 : payload.workflow_run) === null || _c === void 0 ? void 0 : _c.head_sha));
 }
 function main() {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
         const cloudflareToken = core.getInput('cf_token', { required: true });
         const cloudflareAccount = core.getInput('cf_account', { required: true });
         const githubToken = core.getInput('github_token', { required: true });
         const domainName = core.getInput('domain', { required: true });
         const projectPath = core.getInput('project_path');
-        const teardown = ((_a = core.getInput('teardown')) === null || _a === void 0 ? void 0 : _a.toString().toLowerCase()) === 'true';
+        const secrets = (_b = (_a = core.getInput('secrets')) === null || _a === void 0 ? void 0 : _a.split('\n')) !== null && _b !== void 0 ? _b : [];
+        const teardown = ((_c = core.getInput('teardown')) === null || _c === void 0 ? void 0 : _c.toString().toLowerCase()) === 'true';
         const failOnError = !!(core.getInput('failOnError') || process.env.FAIL_ON__ERROR);
         failOnErrorGlobal = failOnError;
         core.debug(`failOnErrorGlobal: ${typeof failOnErrorGlobal} + ${failOnErrorGlobal.toString()}`);
         const { job, payload, repo } = github.context;
         const gitCommitSha = getCommitSha(payload);
-        const isFromForkedRepo = ((_b = payload.pull_request) === null || _b === void 0 ? void 0 : _b.owner) === repo.owner;
+        const isFromForkedRepo = ((_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.owner) === repo.owner;
         core.debug('github.context');
         core.debug(JSON.stringify(github.context, null, 2));
         core.debug(JSON.stringify(repo, null, 2));
@@ -323,8 +338,8 @@ ${helpers_1.getCommentFooter()}
         }
         core.debug(JSON.stringify(data === null || data === void 0 ? void 0 : data.check_runs, null, 2));
         let checkRunId;
-        if (((_c = data === null || data === void 0 ? void 0 : data.check_runs) === null || _c === void 0 ? void 0 : _c.length) >= 0) {
-            const checkRun = (_d = data === null || data === void 0 ? void 0 : data.check_runs) === null || _d === void 0 ? void 0 : _d.find(item => item.name === job);
+        if (((_e = data === null || data === void 0 ? void 0 : data.check_runs) === null || _e === void 0 ? void 0 : _e.length) >= 0) {
+            const checkRun = (_f = data === null || data === void 0 ? void 0 : data.check_runs) === null || _f === void 0 ? void 0 : _f.find(item => item.name === job);
             checkRunId = checkRun === null || checkRun === void 0 ? void 0 : checkRun.id;
         }
         const buildingLogUrl = checkRunId
@@ -379,7 +394,7 @@ ${helpers_1.getCommentFooter()}
             core.info(`Build time: ${duration} seconds`);
             core.info(`Deploy to ${url}`);
             core.setSecret(cloudflareToken);
-            yield helpers_1.wranglerPublish(projectPath, environment, cloudflareAccount, cloudflareToken);
+            yield helpers_1.wranglerPublish(projectPath, environment, cloudflareAccount, cloudflareToken, secrets);
             yield commentIfNotForkedRepo(`
 🎊 PR Preview ${gitCommitSha} has been successfully built and deployed to https://${url}
 
