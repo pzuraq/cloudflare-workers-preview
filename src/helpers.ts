@@ -28,6 +28,7 @@ export const wranglerPublish = async (
   environment: string,
   cloudflareAccount: string,
   cfApiToken: string,
+  secrets: string[],
 ) => {
   const wrangler = '@cloudflare/wrangler';
 
@@ -56,6 +57,27 @@ export const wranglerPublish = async (
       },
     },
   });
+
+  for (const secret of secrets) {
+    const value = process.env[secret];
+
+    if (!value) {
+      throw new Error(`Secret value for ${secret} not found`);
+    }
+
+    await execNpxCommand({
+      command: [wrangler, 'secret', 'put', secret, '-e', environment],
+      options: {
+        cwd: workingDirectory,
+        env: {
+          ...process.env,
+          CF_API_TOKEN: cfApiToken,
+          CF_ACCOUNT_ID: cloudflareAccount,
+        },
+        input: Buffer.from(value, 'utf-8'),
+      },
+    });
+  }
 };
 
 export const wranglerTeardown = async (
