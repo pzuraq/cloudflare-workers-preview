@@ -29,6 +29,7 @@ async function main() {
   const githubToken = core.getInput('github_token', { required: true });
   const domainName = core.getInput('domain', { required: true });
   const projectPath = core.getInput('project_path');
+  const secrets = core.getInput('secrets')?.split('\n') ?? [];
 
   const teardown =
     core.getInput('teardown')?.toString().toLowerCase() === 'true';
@@ -200,6 +201,7 @@ ${getCommentFooter()}
       environment,
       cloudflareAccount,
       cloudflareToken,
+      secrets,
     );
 
     await commentIfNotForkedRepo(`
