@@ -147,19 +147,19 @@ const execNpxCommand = ({ command, options, }) => __awaiter(void 0, void 0, void
     }
 });
 exports.execNpxCommand = execNpxCommand;
-const wranglerPublish = (workingDirectory, environment, cloudflareAccount, cfApiToken, secrets) => __awaiter(void 0, void 0, void 0, function* () {
+const wranglerPublish = (workingDirectory, deployPath, environment, cloudflareAccount, cfApiToken, secrets) => __awaiter(void 0, void 0, void 0, function* () {
     const wrangler = '@cloudflare/wrangler';
-    // Add new environment config to wrangler config file.
-    // [env.preview-job-pr-123]
-    // name = "env.preview-job-pr-123"
-    yield exec_1.exec('sed', ['-i', '-e', `$a[env.${environment}]`, './wrangler.toml'], {
-        cwd: workingDirectory,
-    });
-    yield exec_1.exec('sed', ['-i', '-e', `$aname = "${environment}"`, './wrangler.toml'], {
+    // replace the existing environment and add a name to it
+    yield exec_1.exec('sed', [
+        '-i',
+        '-e',
+        `s/^\\[env.${environment}\\]/[env.${deployPath}]\\nname = "${deployPath}"/g`,
+        './wrangler.toml',
+    ], {
         cwd: workingDirectory,
     });
     yield exports.execNpxCommand({
-        command: [wrangler, 'publish', '-e', environment],
+        command: [wrangler, 'publish', '-e', deployPath],
         options: {
             cwd: workingDirectory,
             env: Object.assign(Object.assign({}, process.env), { CF_API_TOKEN: cfApiToken, CF_ACCOUNT_ID: cloudflareAccount }),
@@ -171,7 +171,7 @@ const wranglerPublish = (workingDirectory, environment, cloudflareAccount, cfApi
             throw new Error(`Secret value for ${secret} not found`);
         }
         yield exports.execNpxCommand({
-            command: [wrangler, 'secret', 'put', secret, '-e', environment],
+            command: [wrangler, 'secret', 'put', secret, '-e', deployPath],
             options: {
                 cwd: workingDirectory,
                 env: Object.assign(Object.assign({}, process.env), { CF_API_TOKEN: cfApiToken, CF_ACCOUNT_ID: cloudflareAccount }),
@@ -181,9 +181,9 @@ const wranglerPublish = (workingDirectory, environment, cloudflareAccount, cfApi
     }
 });
 exports.wranglerPublish = wranglerPublish;
-const wranglerTeardown = (cloudflareAccount, cfApiToken, environment) => __awaiter(void 0, void 0, void 0, function* () {
+const wranglerTeardown = (cloudflareAccount, cfApiToken, deployPath) => __awaiter(void 0, void 0, void 0, function* () {
     const api = 'https://api.cloudflare.com/client/v4/accounts';
-    const url = `${api}/${cloudflareAccount}/workers/scripts/${environment}`;
+    const url = `${api}/${cloudflareAccount}/workers/scripts/${deployPath}`;
     const authHeader = `Authorization: Bearer ${cfApiToken}`;
     return yield exec_1.exec('curl', ['-X', 'DELETE', url, '-H', authHeader]);
 });
@@ -254,6 +254,7 @@ function main() {
         const cloudflareAccount = core.getInput('cf_account', { required: true });
         const githubToken = core.getInput('github_token', { required: true });
         const domainName = core.getInput('domain', { required: true });
+        const environment = core.getInput('environment', { required: true });
         const projectPath = core.getInput('project_path');
         const secrets = (_b = (_a = core.getInput('secrets')) === null || _a === void 0 ? void 0 : _a.split('\n')) !== null && _b !== void 0 ? _b : [];
         const teardown = ((_c = core.getInput('teardown')) === null || _c === void 0 ? void 0 : _c.toString().toLowerCase()) === 'true';
@@ -320,8 +321,8 @@ ${helpers_1.getCommentFooter()}
                 core.setFailed(err.message);
             }
         });
-        const environment = `${job}-pr-${prNumber}`;
-        const url = `${environment}.${domainName}`;
+        const deployPath = `${job}-pr-${prNumber}`;
+        const url = `${deployPath}.${domainName}`;
         core.setOutput('preview_url', url);
         let data;
         try {
@@ -351,7 +352,7 @@ ${helpers_1.getCommentFooter()}
             try {
                 core.info(`Teardown: ${url}`);
                 core.setSecret(cloudflareToken);
-                yield helpers_1.wranglerTeardown(cloudflareAccount, cloudflareToken, environment);
+                yield helpers_1.wranglerTeardown(cloudflareAccount, cloudflareToken, deployPath);
                 return yield commentIfNotForkedRepo(`
 :recycle: [PR Preview](https://${url}) ${gitCommitSha} has been successfully destroyed since this PR has been closed.
 
@@ -394,7 +395,7 @@ ${helpers_1.getCommentFooter()}
             core.info(`Build time: ${duration} seconds`);
             core.info(`Deploy to ${url}`);
             core.setSecret(cloudflareToken);
-            yield helpers_1.wranglerPublish(projectPath, environment, cloudflareAccount, cloudflareToken, secrets);
+            yield helpers_1.wranglerPublish(projectPath, deployPath, environment, cloudflareAccount, cloudflareToken, secrets);
             yield commentIfNotForkedRepo(`
 🎊 PR Preview ${gitCommitSha} has been successfully built and deployed to https://${url}
 

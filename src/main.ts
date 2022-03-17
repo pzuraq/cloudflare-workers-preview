@@ -28,6 +28,7 @@ async function main() {
   const cloudflareAccount = core.getInput('cf_account', { required: true });
   const githubToken = core.getInput('github_token', { required: true });
   const domainName = core.getInput('domain', { required: true });
+  const environment = core.getInput('environment', { required: true });
   const projectPath = core.getInput('project_path');
   const secrets = core.getInput('secrets')?.split('\n') ?? [];
 
@@ -111,8 +112,8 @@ ${getCommentFooter()}
     }
   };
 
-  const environment = `${job}-pr-${prNumber}`;
-  const url = `${environment}.${domainName}`;
+  const deployPath = `${job}-pr-${prNumber}`;
+  const url = `${deployPath}.${domainName}`;
 
   core.setOutput('preview_url', url);
 
@@ -149,7 +150,7 @@ ${getCommentFooter()}
       core.info(`Teardown: ${url}`);
       core.setSecret(cloudflareToken);
 
-      await wranglerTeardown(cloudflareAccount, cloudflareToken, environment);
+      await wranglerTeardown(cloudflareAccount, cloudflareToken, deployPath);
 
       return await commentIfNotForkedRepo(`
 :recycle: [PR Preview](https://${url}) ${gitCommitSha} has been successfully destroyed since this PR has been closed.
@@ -198,6 +199,7 @@ ${getCommentFooter()}
 
     await wranglerPublish(
       projectPath,
+      deployPath,
       environment,
       cloudflareAccount,
       cloudflareToken,

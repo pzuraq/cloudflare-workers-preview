@@ -25,6 +25,7 @@ export const execNpxCommand = async ({
 
 export const wranglerPublish = async (
   workingDirectory: string,
+  deployPath: string,
   environment: string,
   cloudflareAccount: string,
   cfApiToken: string,
@@ -32,22 +33,22 @@ export const wranglerPublish = async (
 ) => {
   const wrangler = '@cloudflare/wrangler';
 
-  // Add new environment config to wrangler config file.
-  // [env.preview-job-pr-123]
-  // name = "env.preview-job-pr-123"
-  await exec('sed', ['-i', '-e', `$a[env.${environment}]`, './wrangler.toml'], {
-    cwd: workingDirectory,
-  });
+  // replace the existing environment and add a name to it
   await exec(
     'sed',
-    ['-i', '-e', `$aname = "${environment}"`, './wrangler.toml'],
+    [
+      '-i',
+      '-e',
+      `s/^\\[env.${environment}\\]/[env.${deployPath}]\\nname = "${deployPath}"/g`,
+      './wrangler.toml',
+    ],
     {
       cwd: workingDirectory,
     },
   );
 
   await execNpxCommand({
-    command: [wrangler, 'publish', '-e', environment],
+    command: [wrangler, 'publish', '-e', deployPath],
     options: {
       cwd: workingDirectory,
       env: {
@@ -66,7 +67,7 @@ export const wranglerPublish = async (
     }
 
     await execNpxCommand({
-      command: [wrangler, 'secret', 'put', secret, '-e', environment],
+      command: [wrangler, 'secret', 'put', secret, '-e', deployPath],
       options: {
         cwd: workingDirectory,
         env: {
@@ -83,10 +84,10 @@ export const wranglerPublish = async (
 export const wranglerTeardown = async (
   cloudflareAccount: string,
   cfApiToken: string,
-  environment: string,
+  deployPath: string,
 ) => {
   const api = 'https://api.cloudflare.com/client/v4/accounts';
-  const url = `${api}/${cloudflareAccount}/workers/scripts/${environment}`;
+  const url = `${api}/${cloudflareAccount}/workers/scripts/${deployPath}`;
   const authHeader = `Authorization: Bearer ${cfApiToken}`;
 
   return await exec('curl', ['-X', 'DELETE', url, '-H', authHeader]);

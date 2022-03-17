@@ -8,6 +8,9 @@ inputs:
   cf_account:
     description: 'Cloudflare account id'
     required: true
+  environment:
+    description: "The environment you'd like to publish your Workers project to - must be defined in wrangler.toml"
+    required: true
   domain:
     required: true
     description: 'eg.workers.dev'
