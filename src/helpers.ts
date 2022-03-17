@@ -61,6 +61,8 @@ export const wranglerPublish = async (
   for (const secret of secrets) {
     const value = process.env[secret];
 
+    throw new Error(secret);
+
     if (!value) {
       throw new Error(`Secret value for ${secret} not found`);
     }
