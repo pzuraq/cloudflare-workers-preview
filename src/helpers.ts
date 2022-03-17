@@ -66,7 +66,7 @@ export const wranglerPublish = async (
     }
 
     await execNpxCommand({
-      command: [wrangler, 'secret', 'put', `"${secret}"`, '-e', environment],
+      command: [wrangler, 'secret', 'put', secret, '-e', environment],
       options: {
         cwd: workingDirectory,
         env: {
