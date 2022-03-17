@@ -171,7 +171,7 @@ const wranglerPublish = (workingDirectory, environment, cloudflareAccount, cfApi
             throw new Error(`Secret value for ${secret} not found`);
         }
         yield exports.execNpxCommand({
-            command: [wrangler, 'secret', 'put', `"${secret}"`, '-e', environment],
+            command: [wrangler, 'secret', 'put', secret, '-e', environment],
             options: {
                 cwd: workingDirectory,
                 env: Object.assign(Object.assign({}, process.env), { CF_API_TOKEN: cfApiToken, CF_ACCOUNT_ID: cloudflareAccount }),
