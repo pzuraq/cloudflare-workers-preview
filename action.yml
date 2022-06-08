@@ -14,6 +14,9 @@ inputs:
   domain:
     required: true
     description: 'eg.workers.dev'
+  app_id:
+    required: true
+    description: 'unique id for your app so you can have multiple previews without overlap'
   github_token:
     description: 'github token'
     required: true

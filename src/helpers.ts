@@ -8,7 +8,7 @@ interface NPXCommandOptions {
 export const execNpxCommand = async ({
   command,
   options,
-}: NPXCommandOptions): Promise<void> => {
+}: NPXCommandOptions): Promise<string> => {
   let myOutput = '';
   const exitCode = await exec(`npx`, ['-y', ...command], {
     listeners: {
@@ -21,7 +21,10 @@ export const execNpxCommand = async ({
   if (exitCode > 0 && myOutput && !myOutput.includes('Success')) {
     throw new Error(myOutput);
   }
+  return myOutput;
 };
+
+const wrangler = '@cloudflare/wrangler';
 
 export const wranglerPublish = async (
   workingDirectory: string,
@@ -31,8 +34,6 @@ export const wranglerPublish = async (
   cfApiToken: string,
   secrets: string[],
 ) => {
-  const wrangler = '@cloudflare/wrangler';
-
   // replace the existing environment and add a name to it
   await exec(
     'sed',
@@ -86,11 +87,38 @@ export const wranglerTeardown = async (
   cfApiToken: string,
   deployPath: string,
 ) => {
-  const api = 'https://api.cloudflare.com/client/v4/accounts';
-  const url = `${api}/${cloudflareAccount}/workers/scripts/${deployPath}`;
+  const api = `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccount}`;
   const authHeader = `Authorization: Bearer ${cfApiToken}`;
 
-  return await exec('curl', ['-X', 'DELETE', url, '-H', authHeader]);
+  await exec('curl', [
+    '-X',
+    'DELETE',
+    `${api}/workers/scripts/${deployPath}`,
+    '-H',
+    authHeader,
+  ]);
+
+  const kvNamespaces = JSON.parse(
+    await execNpxCommand({
+      command: [wrangler, 'kv:namespace', 'list'],
+    }),
+  ) as { id: string; title: string }[];
+
+  const namespace = kvNamespaces.find(
+    n => n.title === `__${deployPath}-workers_sites_assets`,
+  );
+
+  if (!namespace) {
+    throw new Error('No KV namespace found');
+  }
+
+  return await exec('curl', [
+    '-X',
+    'DELETE',
+    `${api}/storage/kv/namespaces/${namespace.id}`,
+    '-H',
+    authHeader,
+  ]);
 };
 
 export const formatImage = ({
