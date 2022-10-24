@@ -145,10 +145,11 @@ const execNpxCommand = ({ command, options, }) => __awaiter(void 0, void 0, void
     if (exitCode > 0 && myOutput && !myOutput.includes('Success')) {
         throw new Error(myOutput);
     }
+    return myOutput;
 });
 exports.execNpxCommand = execNpxCommand;
+const wrangler = '@cloudflare/wrangler';
 const wranglerPublish = (workingDirectory, deployPath, environment, cloudflareAccount, cfApiToken, secrets) => __awaiter(void 0, void 0, void 0, function* () {
-    const wrangler = '@cloudflare/wrangler';
     // replace the existing environment and add a name to it
     yield exec_1.exec('sed', [
         '-i',
@@ -182,10 +183,29 @@ const wranglerPublish = (workingDirectory, deployPath, environment, cloudflareAc
 });
 exports.wranglerPublish = wranglerPublish;
 const wranglerTeardown = (cloudflareAccount, cfApiToken, deployPath) => __awaiter(void 0, void 0, void 0, function* () {
-    const api = 'https://api.cloudflare.com/client/v4/accounts';
-    const url = `${api}/${cloudflareAccount}/workers/scripts/${deployPath}`;
+    const api = `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccount}`;
     const authHeader = `Authorization: Bearer ${cfApiToken}`;
-    return yield exec_1.exec('curl', ['-X', 'DELETE', url, '-H', authHeader]);
+    yield exec_1.exec('curl', [
+        '-X',
+        'DELETE',
+        `${api}/workers/scripts/${deployPath}`,
+        '-H',
+        authHeader,
+    ]);
+    const kvNamespaces = JSON.parse(yield exports.execNpxCommand({
+        command: [wrangler, 'kv:namespace', 'list'],
+    }));
+    const namespace = kvNamespaces.find(n => n.title === `__${deployPath}-workers_sites_assets`);
+    if (!namespace) {
+        throw new Error('No KV namespace found');
+    }
+    return yield exec_1.exec('curl', [
+        '-X',
+        'DELETE',
+        `${api}/storage/kv/namespaces/${namespace.id}`,
+        '-H',
+        authHeader,
+    ]);
 });
 exports.wranglerTeardown = wranglerTeardown;
 const formatImage = ({ buildingLogUrl, imageUrl, }) => {
@@ -258,7 +278,8 @@ function main() {
         const projectPath = core.getInput('project_path');
         const secrets = (_b = (_a = core.getInput('secrets')) === null || _a === void 0 ? void 0 : _a.split('\n')) !== null && _b !== void 0 ? _b : [];
         const teardown = ((_c = core.getInput('teardown')) === null || _c === void 0 ? void 0 : _c.toString().toLowerCase()) === 'true';
-        const failOnError = !!(core.getInput('failOnError') || process.env.FAIL_ON__ERROR);
+        const failOnError = !!(core.getInput('failOnError') === 'true' ||
+            process.env.FAIL_ON__ERROR === 'true');
         failOnErrorGlobal = failOnError;
         core.debug(`failOnErrorGlobal: ${typeof failOnErrorGlobal} + ${failOnErrorGlobal.toString()}`);
         const { job, payload, repo } = github.context;
