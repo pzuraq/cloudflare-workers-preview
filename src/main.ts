@@ -35,7 +35,8 @@ async function main() {
   const teardown =
     core.getInput('teardown')?.toString().toLowerCase() === 'true';
   const failOnError = !!(
-    core.getInput('failOnError') || process.env.FAIL_ON__ERROR
+    core.getInput('failOnError') === 'true' ||
+    process.env.FAIL_ON__ERROR === 'true'
   );
 
   failOnErrorGlobal = failOnError;

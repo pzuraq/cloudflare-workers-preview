@@ -31,10 +31,11 @@ inputs:
     description: 'directory of the wrangler project'
   failOnError:
     required: false
+    default: 'true'
     description: 'Set `failed` if a deployment throws error'
   teardown:
     description: 'Determines if the preview instance will be torn down on PR close'
-    default: 'false'
+    default: 'true'
     required: false
   secrets:
     description: 'A new line deliminated string of environment variable names that should be configured as Worker secrets'
