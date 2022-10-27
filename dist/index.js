@@ -377,6 +377,7 @@ ${helpers_1.getCommentFooter()}
             try {
                 core.info(`Teardown: ${url}`);
                 core.setSecret(cloudflareToken);
+                yield exec_1.exec(`npm install`);
                 yield helpers_1.wranglerTeardown(projectPath, cloudflareAccount, cloudflareToken, deployPath);
                 return yield commentIfNotForkedRepo(`
 :recycle: [PR Preview](https://${url}) ${gitCommitSha} has been successfully destroyed since this PR has been closed.

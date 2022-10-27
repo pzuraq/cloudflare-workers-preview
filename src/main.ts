@@ -151,6 +151,8 @@ ${getCommentFooter()}
       core.info(`Teardown: ${url}`);
       core.setSecret(cloudflareToken);
 
+      await exec(`npm install`);
+
       await wranglerTeardown(
         projectPath,
         cloudflareAccount,
