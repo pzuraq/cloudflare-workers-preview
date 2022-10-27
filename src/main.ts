@@ -151,7 +151,12 @@ ${getCommentFooter()}
       core.info(`Teardown: ${url}`);
       core.setSecret(cloudflareToken);
 
-      await wranglerTeardown(cloudflareAccount, cloudflareToken, deployPath);
+      await wranglerTeardown(
+        projectPath,
+        cloudflareAccount,
+        cloudflareToken,
+        deployPath,
+      );
 
       return await commentIfNotForkedRepo(`
 :recycle: [PR Preview](https://${url}) ${gitCommitSha} has been successfully destroyed since this PR has been closed.

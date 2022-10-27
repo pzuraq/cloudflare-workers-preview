@@ -83,6 +83,7 @@ export const wranglerPublish = async (
 };
 
 export const wranglerTeardown = async (
+  workingDirectory: string,
   cloudflareAccount: string,
   cfApiToken: string,
   deployPath: string,
@@ -101,6 +102,14 @@ export const wranglerTeardown = async (
   const kvNamespaces = JSON.parse(
     await execNpxCommand({
       command: [wrangler, 'kv:namespace', 'list'],
+      options: {
+        cwd: workingDirectory,
+        env: {
+          ...process.env,
+          CF_API_TOKEN: cfApiToken,
+          CF_ACCOUNT_ID: cloudflareAccount,
+        },
+      },
     }),
   ) as { id: string; title: string }[];
 

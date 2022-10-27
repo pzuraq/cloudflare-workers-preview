@@ -182,7 +182,7 @@ const wranglerPublish = (workingDirectory, deployPath, environment, cloudflareAc
     }
 });
 exports.wranglerPublish = wranglerPublish;
-const wranglerTeardown = (cloudflareAccount, cfApiToken, deployPath) => __awaiter(void 0, void 0, void 0, function* () {
+const wranglerTeardown = (workingDirectory, cloudflareAccount, cfApiToken, deployPath) => __awaiter(void 0, void 0, void 0, function* () {
     const api = `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccount}`;
     const authHeader = `Authorization: Bearer ${cfApiToken}`;
     yield exec_1.exec('curl', [
@@ -194,6 +194,10 @@ const wranglerTeardown = (cloudflareAccount, cfApiToken, deployPath) => __awaite
     ]);
     const kvNamespaces = JSON.parse(yield exports.execNpxCommand({
         command: [wrangler, 'kv:namespace', 'list'],
+        options: {
+            cwd: workingDirectory,
+            env: Object.assign(Object.assign({}, process.env), { CF_API_TOKEN: cfApiToken, CF_ACCOUNT_ID: cloudflareAccount }),
+        },
     }));
     const namespace = kvNamespaces.find(n => n.title === `__${deployPath}-workers_sites_assets`);
     if (!namespace) {
@@ -373,7 +377,7 @@ ${helpers_1.getCommentFooter()}
             try {
                 core.info(`Teardown: ${url}`);
                 core.setSecret(cloudflareToken);
-                yield helpers_1.wranglerTeardown(cloudflareAccount, cloudflareToken, deployPath);
+                yield helpers_1.wranglerTeardown(projectPath, cloudflareAccount, cloudflareToken, deployPath);
                 return yield commentIfNotForkedRepo(`
 :recycle: [PR Preview](https://${url}) ${gitCommitSha} has been successfully destroyed since this PR has been closed.
 
