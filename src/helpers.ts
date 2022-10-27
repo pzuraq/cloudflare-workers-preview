@@ -99,19 +99,28 @@ export const wranglerTeardown = async (
     authHeader,
   ]);
 
-  const kvNamespaces = JSON.parse(
-    await execNpxCommand({
-      command: [wrangler, 'kv:namespace', 'list'],
-      options: {
-        cwd: workingDirectory,
-        env: {
-          ...process.env,
-          CF_API_TOKEN: cfApiToken,
-          CF_ACCOUNT_ID: cloudflareAccount,
-        },
+  const namespaceText = await execNpxCommand({
+    command: [wrangler, 'kv:namespace', 'list'],
+    options: {
+      cwd: workingDirectory,
+      env: {
+        ...process.env,
+        CF_API_TOKEN: cfApiToken,
+        CF_ACCOUNT_ID: cloudflareAccount,
       },
-    }),
-  ) as { id: string; title: string }[];
+    },
+  });
+
+  const matches = namespaceText.replace(/\s/g, '').match(/\[{.+}\]/);
+
+  if (!matches) {
+    throw new Error('No matching namespaces found');
+  }
+
+  const kvNamespaces = JSON.parse(matches[0]) as {
+    id: string;
+    title: string;
+  }[];
 
   const namespace = kvNamespaces.find(
     n => n.title === `__${deployPath}-workers_sites_assets`,
