@@ -24,7 +24,7 @@ export const execNpxCommand = async ({
   return myOutput;
 };
 
-const wrangler = '@cloudflare/wrangler';
+const wrangler = 'wrangler';
 
 export const wranglerPublish = async (
   workingDirectory: string,
@@ -126,17 +126,15 @@ export const wranglerTeardown = async (
     n => n.title === `__${deployPath}-workers_sites_assets`,
   );
 
-  if (!namespace) {
-    throw new Error('No KV namespace found');
+  if (namespace) {
+    return await exec('curl', [
+      '-X',
+      'DELETE',
+      `${api}/storage/kv/namespaces/${namespace.id}`,
+      '-H',
+      authHeader,
+    ]);
   }
-
-  return await exec('curl', [
-    '-X',
-    'DELETE',
-    `${api}/storage/kv/namespaces/${namespace.id}`,
-    '-H',
-    authHeader,
-  ]);
 };
 
 export const formatImage = ({

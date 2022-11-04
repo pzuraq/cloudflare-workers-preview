@@ -148,7 +148,7 @@ const execNpxCommand = ({ command, options, }) => __awaiter(void 0, void 0, void
     return myOutput;
 });
 exports.execNpxCommand = execNpxCommand;
-const wrangler = '@cloudflare/wrangler';
+const wrangler = 'wrangler';
 const wranglerPublish = (workingDirectory, deployPath, environment, cloudflareAccount, cfApiToken, secrets) => __awaiter(void 0, void 0, void 0, function* () {
     // replace the existing environment and add a name to it
     yield exec_1.exec('sed', [
@@ -205,16 +205,15 @@ const wranglerTeardown = (workingDirectory, cloudflareAccount, cfApiToken, deplo
     }
     const kvNamespaces = JSON.parse(matches[0]);
     const namespace = kvNamespaces.find(n => n.title === `__${deployPath}-workers_sites_assets`);
-    if (!namespace) {
-        throw new Error('No KV namespace found');
+    if (namespace) {
+        return yield exec_1.exec('curl', [
+            '-X',
+            'DELETE',
+            `${api}/storage/kv/namespaces/${namespace.id}`,
+            '-H',
+            authHeader,
+        ]);
     }
-    return yield exec_1.exec('curl', [
-        '-X',
-        'DELETE',
-        `${api}/storage/kv/namespaces/${namespace.id}`,
-        '-H',
-        authHeader,
-    ]);
 });
 exports.wranglerTeardown = wranglerTeardown;
 const formatImage = ({ buildingLogUrl, imageUrl, }) => {
